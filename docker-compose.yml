@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_DB: auth
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./auth-service/migrations:/docker-entrypoint-initdb.d
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    ports:
+      - "8081:8081"
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgres://user:pass@postgres:5432/auth?sslmode=disable
+
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth-service
+    environment:
+      AUTH_SERVICE_URL: "http://${AUTH_SERVICE_HOST}:${AUTH_SERVICE_PORT}"
+      AUTH_SERVICE_REG_PATH: "${AUTH_SERVICE_REG_PATH}"
+      AUTH_SERVICE_LOGIN_PATH: "${AUTH_SERVICE_LOGIN_PATH}"

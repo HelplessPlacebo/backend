@@ -1,0 +1,50 @@
+package api
+
+import (
+	"context"
+	"encoding/json"
+	"io"
+	"net/http"
+
+	"github.com/HelplessPlacebo/backend/gateway/internal/proxy"
+	"github.com/HelplessPlacebo/backend/pkg/shared"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-playground/validator/v10"
+)
+
+func RegisterRegistration(r chi.Router, p proxy.Client, v *validator.Validate, logger *shared.Logger) {
+	r.Post("/registration", func(w http.ResponseWriter, req *http.Request) {
+		var body RegistrationRequest
+
+		if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+			logger.Infof("Failed to decode registration request: %v", err)
+			shared.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
+			return
+		}
+
+		if err := v.Struct(body); err != nil {
+			logger.Infof("Failed to validate registration request: %v", err.Error())
+			shared.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+
+		resp, err := p.ForwardJSON(context.Background(), "/registration", body)
+		if err != nil {
+			logger.Errorf("proxy error: %v", err)
+			shared.WriteJSON(w, http.StatusBadGateway, map[string]string{"error": "upstream error"})
+			return
+		}
+		defer resp.Body.Close()
+
+		for k, vals := range resp.Header {
+			for _, v := range vals {
+				w.Header().Add(k, v)
+			}
+		}
+
+		w.WriteHeader(resp.StatusCode)
+		_, _ = io.Copy(w, resp.Body)
+
+		json.NewEncoder(w).Encode(json.RawMessage{}) // keep simple, alternative use io.Copy
+	})
+}
