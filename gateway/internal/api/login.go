@@ -12,18 +12,18 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-func RegisterRegistration(r chi.Router, p proxy.Client, v *validator.Validate, logger *shared.Logger, endpoint string) {
+func RegisterLogin(r chi.Router, p proxy.Client, v *validator.Validate, logger *shared.Logger, endpoint string) {
 	r.Post(endpoint, func(w http.ResponseWriter, req *http.Request) {
-		var body RegistrationRequest
+		var body LoginRequest
 
 		if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
-			logger.Infof("Failed to decode registration request: %v", err)
+			logger.Infof("Failed to decode %v request: %v", endpoint, err)
 			shared.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
 			return
 		}
 
 		if err := v.Struct(body); err != nil {
-			logger.Infof("Failed to validate registration request: %v", err.Error())
+			logger.Infof("Failed to validate %v request: %v", endpoint, err.Error())
 			shared.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}

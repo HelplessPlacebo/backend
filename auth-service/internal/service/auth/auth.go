@@ -1,4 +1,4 @@
-package service
+package auth
 
 import (
 	"github.com/HelplessPlacebo/backend/auth-service/internal/storage"
@@ -39,4 +39,24 @@ func (a *AuthService) Register(email, password, name string) *shared.AppError {
 
 	a.logger.Infof("user registered: %s", email)
 	return nil
+}
+
+func (a *AuthService) Login(email, password string) (user *storage.User, e *shared.AppError) {
+	u, err := a.users.GetByEmail(email)
+	if u == nil {
+		return u, shared.BadRequest("invalid email or password", nil)
+	}
+
+	if ae, ok := shared.IsAppError(err); ok && ae.Code != 404 {
+		a.logger.Errorf("failed to check user: %s; underlying: %v", email, err)
+		return u, shared.Internal("db error", err)
+	}
+
+	passCompareErr := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password))
+	if passCompareErr != nil {
+		return u, shared.Internal("failed to hash password", err)
+	}
+
+	a.logger.Infof("user found: %s", email)
+	return u, nil
 }

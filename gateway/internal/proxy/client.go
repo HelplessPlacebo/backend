@@ -26,8 +26,19 @@ func NewClient(baseURL string) Client {
 	}
 }
 
-func (c *client) ForwardJSON(ctx context.Context, targetPath string, body interface{}) (*http.Response, error) {
+func (c *client) ForwardJSON(ctx context.Context, targetPath string, body interface{}, incomingCookies []*http.Cookie) (*http.Response, error) {
 	ref := &url.URL{Path: path.Join(c.base.Path, targetPath)}
 	full := c.base.ResolveReference(ref).String()
-	return c.httpCli.PostJSON(ctx, full, body)
+
+	req, err := c.httpCli.NewJSONRequest(ctx, http.MethodPost, full, body)
+	if err != nil {
+		return nil, err
+	}
+
+	// 🔥 Прокидываем куки
+	for _, ck := range incomingCookies {
+		req.AddCookie(ck)
+	}
+
+	return c.httpCli.Do(req)
 }

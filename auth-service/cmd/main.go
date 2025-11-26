@@ -9,31 +9,28 @@ import (
 	"time"
 
 	"github.com/HelplessPlacebo/backend/auth-service/config"
-	"github.com/HelplessPlacebo/backend/auth-service/internal/api"
-	"github.com/HelplessPlacebo/backend/auth-service/internal/service"
+	"github.com/HelplessPlacebo/backend/auth-service/internal/router"
+	"github.com/HelplessPlacebo/backend/auth-service/internal/service/auth"
+	"github.com/HelplessPlacebo/backend/auth-service/internal/service/token"
 	"github.com/HelplessPlacebo/backend/auth-service/internal/storage"
 	"github.com/HelplessPlacebo/backend/pkg/shared"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/go-playground/validator/v10"
 )
 
 func main() {
 	logger := shared.NewLogger()
+
+	shared.InitEnv(logger)
 
 	cfg := config.Load()
 
 	db := storage.NewPostgres(cfg.DBURL)
 
 	userRepo := storage.NewUserRepo(db)
-	authSvc := service.NewAuthService(userRepo, logger)
+	refreshTokenRepo := storage.NewRefreshRepo(db)
+	authSvc := auth.NewAuthService(userRepo, logger)
+	tokensSvc := token.NewTokenService(cfg.JWTSecret, cfg.AccessTokenTTL, cfg.RefreshTokenTTL, refreshTokenRepo)
 
-	r := chi.NewRouter()
-	v := validator.New()
-
-	r.Route(cfg.APIBase, func(r chi.Router) {
-		api.RegisterRegistration(r, authSvc, v, logger)
-	})
+	r := router.NewRouter(authSvc, tokensSvc, cfg, logger)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,

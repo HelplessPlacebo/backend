@@ -3,6 +3,7 @@ package router
 import (
 	"net/http"
 
+	"github.com/HelplessPlacebo/backend/gateway/config"
 	"github.com/HelplessPlacebo/backend/gateway/internal/api"
 	"github.com/HelplessPlacebo/backend/gateway/internal/proxy"
 	"github.com/HelplessPlacebo/backend/pkg/shared"
@@ -10,7 +11,7 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-func NewRouter(p proxy.Client, logger *shared.Logger) http.Handler {
+func NewRouter(p proxy.Client, logger *shared.Logger, cfg *config.Config) http.Handler {
 	r := chi.NewRouter()
 	v := validator.New()
 
@@ -22,7 +23,9 @@ func NewRouter(p proxy.Client, logger *shared.Logger) http.Handler {
 	})
 
 	r.Route("/api/v1", func(r chi.Router) {
-		api.RegisterRegistration(r, p, v, logger)
+		api.RegisterRegistration(r, p, v, logger, cfg.RegistrationEndpoint)
+		api.RegisterLogin(r, p, v, logger, cfg.LoginEndpoint)
+		api.RegisterLogout(r, p, logger, cfg.LogoutEndpoint)
 	})
 
 	return r

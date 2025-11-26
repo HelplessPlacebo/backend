@@ -36,6 +36,10 @@ func Internal(msg string, err error) *AppError {
 	return &AppError{Code: http.StatusInternalServerError, Message: msg, Err: err}
 }
 
+func UnAuth(msg string, err error) *AppError {
+	return &AppError{Code: http.StatusUnauthorized, Message: msg, Err: err}
+}
+
 func IsAppError(err error) (*AppError, bool) {
 	var ae *AppError
 	if errors.As(err, &ae) {

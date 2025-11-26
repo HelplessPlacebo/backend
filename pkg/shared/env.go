@@ -4,6 +4,8 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 // String returns environment variable or fallback.
@@ -36,4 +38,33 @@ func Bool(key string, fallback bool) bool {
 
 func Duration(key string, def int) time.Duration {
 	return time.Duration(Int(key, def)) * time.Second
+}
+
+func InitEnv(logger *Logger) {
+
+	paths := []string{
+		".env",
+		".env.local",
+		".env.development",
+		".env.example",
+		"../.env",
+		"../.env.example",
+		"../../.env",
+		"../../.env.example",
+	}
+
+	loaded := false
+	for _, p := range paths {
+		if _, err := os.Stat(p); err == nil {
+			if err := godotenv.Load(p); err == nil {
+				logger.Infof("loaded env from %s", p)
+				loaded = true
+				break
+			}
+		}
+	}
+
+	if !loaded {
+		logger.Infof("no .env file loaded (looked in likely locations); relying on OS env")
+	}
 }

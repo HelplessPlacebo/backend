@@ -16,21 +16,24 @@ services:
       context: .
       dockerfile: auth-service/Dockerfile
     ports:
-      - "8081:8081"
+      - "${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}"
     depends_on:
       - postgres
     environment:
-      DATABASE_URL: postgres://user:pass@postgres:5432/auth?sslmode=disable
+      DATABASE_URL: "${DATABASE_URL}"
+      JWT_SECRET: "${JWT_SECRET}"
+      AUTH_SERVICE_BASE_PATH: "${AUTH_SERVICE_BASE_PATH}"
 
   gateway:
     build:
       context: .
       dockerfile: gateway/Dockerfile
     ports:
-      - "8080:8080"
+      - "${GATEWAY_PORT}:${GATEWAY_PORT}"
     depends_on:
       - auth-service
     environment:
       AUTH_SERVICE_URL: "http://${AUTH_SERVICE_HOST}:${AUTH_SERVICE_PORT}"
       AUTH_SERVICE_REG_PATH: "${AUTH_SERVICE_REG_PATH}"
       AUTH_SERVICE_LOGIN_PATH: "${AUTH_SERVICE_LOGIN_PATH}"
+      HTTP_CLIENT_TIMEOUT: "${HTTP_CLIENT_TIMEOUT}"

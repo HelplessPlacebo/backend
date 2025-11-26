@@ -16,19 +16,20 @@ import (
 
 func main() {
 	logger := shared.NewLogger()
+
+	shared.InitEnv(logger)
+
 	cfg := config.Load()
 
-	// build auth base url using config.AuthBaseURL()
 	p := proxy.NewClient(cfg.AuthBaseURL())
 
-	r := router.NewRouter(p, logger)
+	r := router.NewRouter(p, logger, cfg)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,
 		Handler: r,
 	}
 
-	// graceful shutdown
 	done := make(chan struct{})
 	go func() {
 		c := make(chan os.Signal, 1)
