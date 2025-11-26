@@ -1,8 +1,6 @@
 package api
 
 import (
-	"context"
-	"encoding/json"
 	"io"
 	"net/http"
 
@@ -13,8 +11,7 @@ import (
 
 func RegisterLogout(r chi.Router, p proxy.Client, logger *shared.Logger, endpoint string) {
 	r.Post(endpoint, func(w http.ResponseWriter, req *http.Request) {
-
-		resp, err := p.ForwardJSON(context.Background(), endpoint, nil)
+		resp, err := p.ForwardJSON(req.Context(), req, endpoint, nil)
 		if err != nil {
 			logger.Errorf("proxy error: %v", err)
 			shared.WriteJSON(w, http.StatusBadGateway, map[string]string{"error": "upstream error"})
@@ -23,14 +20,18 @@ func RegisterLogout(r chi.Router, p proxy.Client, logger *shared.Logger, endpoin
 		defer resp.Body.Close()
 
 		for k, vals := range resp.Header {
+			if k == "Set-Cookie" {
+				continue
+			}
 			for _, v := range vals {
 				w.Header().Add(k, v)
 			}
 		}
 
-		w.WriteHeader(resp.StatusCode)
-		_, _ = io.Copy(w, resp.Body)
+		shared.ProxyCookiesFromResponse(resp, w)
 
-		json.NewEncoder(w).Encode(json.RawMessage{})
+		w.WriteHeader(resp.StatusCode)
+
+		_, _ = io.Copy(w, resp.Body)
 	})
 }
