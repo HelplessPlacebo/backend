@@ -45,6 +45,16 @@ func (s *TokenService) GenerateTokenPair(userID int) (access string, refresh str
 	return access, rawRefresh, nil
 }
 
+func (s *TokenService) RemoveHashedRefresh(hash string) (appErr *shared.AppError) {
+	err := s.repo.DeleteHashed(hash)
+
+	if err != nil {
+		return shared.Internal("failed delete hashed refresh token", err)
+	}
+
+	return nil
+}
+
 func (s *TokenService) RemoveRefresh(token string) (appErr *shared.AppError) {
 	err := s.repo.Delete(token)
 
@@ -53,4 +63,12 @@ func (s *TokenService) RemoveRefresh(token string) (appErr *shared.AppError) {
 	}
 
 	return nil
+}
+
+func (s *TokenService) CheckExistingLogin(refresh string) (userID int, exp time.Time, err error) {
+	return s.repo.Find(refresh)
+}
+
+func (s *TokenService) FindActiveByUserID(userID int) (hash string, exp time.Time, err error) {
+	return s.repo.FindByUserID(userID)
 }

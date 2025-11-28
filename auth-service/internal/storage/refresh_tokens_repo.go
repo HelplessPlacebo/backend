@@ -22,25 +22,61 @@ func (r *RefreshTokenRepo) SaveHash(hashedToken string, userID int, expiresAt ti
 	return nil
 }
 
-func (r *RefreshTokenRepo) Delete(token string) error {
-	th := HashSHA256(token)
-	_, err := r.db.Exec(`DELETE FROM refresh_tokens WHERE token_hash=$1`, th)
+func (r *RefreshTokenRepo) DeleteHashed(hashed string) error {
+
+	_, err := r.db.Exec(`
+		DELETE FROM refresh_tokens WHERE token_hash=$1
+	`, hashed)
+
 	if err != nil {
 		return shared.Internal("failed to delete refresh token", err)
 	}
 	return nil
 }
 
-func (r *RefreshTokenRepo) Find(token string) (int, time.Time, *shared.AppError) {
-	th := HashSHA256(token)
+func (r *RefreshTokenRepo) Delete(raw string) error {
+	hash := shared.HashSHA256(raw)
+
+	_, err := r.db.Exec(`
+		DELETE FROM refresh_tokens WHERE token_hash=$1
+	`, hash)
+
+	if err != nil {
+		return shared.Internal("failed to delete refresh token", err)
+	}
+	return nil
+}
+
+func (r *RefreshTokenRepo) Find(raw string) (int, time.Time, *shared.AppError) {
+	hash := shared.HashSHA256(raw)
+
 	var userID int
-	var expires time.Time
+	var exp time.Time
 
-	row := r.db.QueryRowx(`SELECT user_id, expires_at FROM refresh_tokens WHERE token_hash=$1`, th)
+	row := r.db.QueryRowx(`
+		SELECT user_id, expires_at 
+		FROM refresh_tokens 
+		WHERE token_hash=$1
+	`, hash)
 
-	if err := row.Scan(&userID, &expires); err != nil {
+	if err := row.Scan(&userID, &exp); err != nil {
 		return 0, time.Time{}, shared.NotFound("refresh token not found", err)
 	}
 
-	return userID, expires, nil
+	return userID, exp, nil
+}
+
+func (r *RefreshTokenRepo) FindByUserID(userID int) (string, time.Time, error) {
+	var hash string
+	var exp time.Time
+
+	err := r.db.QueryRow(`
+		SELECT token_hash, expires_at
+		FROM refresh_tokens
+		WHERE user_id=$1
+		ORDER BY expires_at DESC
+		LIMIT 1
+	`, userID).Scan(&hash, &exp)
+
+	return hash, exp, err
 }

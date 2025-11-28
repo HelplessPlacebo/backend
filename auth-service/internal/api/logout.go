@@ -9,33 +9,37 @@ import (
 )
 
 func RegisterLogout(r chi.Router, tokenSvc *token.TokenService, endpoint string) {
+
 	r.Post(endpoint, func(w http.ResponseWriter, req *http.Request) {
 
-		refToken, err := req.Cookie("refresh_token")
-
+		cookie, err := req.Cookie("refresh_token")
 		if err != nil {
-			shared.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			shared.WriteJSON(w, http.StatusOK, map[string]string{"status": "already_logged_out"})
 			return
 		}
 
-		removeErr := tokenSvc.RemoveRefresh(refToken.Value)
-
-		if removeErr != nil {
-			shared.WriteJSON(w, removeErr.Code, map[string]string{"error": removeErr.Message})
-			return
-		}
+		_ = tokenSvc.RemoveRefresh(cookie.Value)
 
 		http.SetCookie(w, &http.Cookie{
-			Name: "access_token", Value: "",
-			HttpOnly: true, Secure: true, Path: "/", SameSite: http.SameSiteStrictMode,
-			MaxAge: 0,
+			Name:     "access_token",
+			Value:    "",
+			Path:     "/",
+			MaxAge:   -1,
+			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteStrictMode,
 		})
 		http.SetCookie(w, &http.Cookie{
-			Name: "refresh_token", Value: "",
-			HttpOnly: true, Secure: true, Path: "/", SameSite: http.SameSiteStrictMode,
-			MaxAge: 0,
+			Name:     "refresh_token",
+			Value:    "",
+			Path:     "/",
+			MaxAge:   -1,
+			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteStrictMode,
 		})
 
-		shared.WriteJSON(w, http.StatusCreated, map[string]string{"status": "ok"})
+		shared.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
+
 }
