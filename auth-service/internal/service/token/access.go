@@ -7,13 +7,13 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type AccessTokenClaims struct {
-	UserID int `json:"sub"`
+type AccessClaims struct {
+	UserID int `json:"user_id"`
 	jwt.RegisteredClaims
 }
 
 func GenerateAccessToken(userID int, ttl time.Duration, secret string) (string, *shared.AppError) {
-	claims := AccessTokenClaims{
+	claims := AccessClaims{
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(ttl)),

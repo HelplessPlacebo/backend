@@ -18,28 +18,6 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required,min=6"`
 }
 
-func SetAuthCookie(w http.ResponseWriter, access string, refresh string, accessMaxAge int, refreshMaxAge int) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     "access_token",
-		Value:    access,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-		MaxAge:   accessMaxAge,
-	})
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     "refresh_token",
-		Value:    refresh,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-		MaxAge:   refreshMaxAge,
-	})
-}
-
 func RegisterLogin(r chi.Router, authSvc *auth.AuthService, tokenSvc *token.TokenService, v *validator.Validate, logger *shared.Logger, accessTokenTTL time.Duration, refreshTokenTTL time.Duration, endpoint string) {
 	r.Post(endpoint, func(w http.ResponseWriter, req *http.Request) {
 
@@ -67,7 +45,7 @@ func RegisterLogin(r chi.Router, authSvc *auth.AuthService, tokenSvc *token.Toke
 
 		if err == nil {
 
-			existingUserID, expiresAt, dbErr := tokenSvc.CheckExistingLogin(refreshCookie.Value)
+			existingUserID, expiresAt, dbErr := tokenSvc.GetUserIDByRefresh(refreshCookie.Value)
 
 			if dbErr == nil && existingUserID == user.ID && expiresAt.After(time.Now()) {
 				shared.WriteJSON(w, http.StatusOK, map[string]string{"status": "already_logged_in"})
@@ -75,8 +53,8 @@ func RegisterLogin(r chi.Router, authSvc *auth.AuthService, tokenSvc *token.Toke
 			}
 		}
 
-		activeHash, activeExp, findErr := tokenSvc.FindActiveByUserID(user.ID)
-		if findErr == nil && activeExp.After(time.Now()) {
+		activeHash, refExpiredAt, findErr := tokenSvc.FindRefreshTokenByUserID(user.ID)
+		if findErr == nil && refExpiredAt.After(time.Now()) {
 			_ = tokenSvc.RemoveHashedRefresh(activeHash)
 
 			access, refreshRaw, genErr := tokenSvc.GenerateTokenPair(user.ID)

@@ -13,7 +13,7 @@ type RefreshTokenRepo struct {
 
 func NewRefreshRepo(db *sqlx.DB) *RefreshTokenRepo { return &RefreshTokenRepo{db: db} }
 
-func (r *RefreshTokenRepo) SaveHash(hashedToken string, userID int, expiresAt time.Time) error {
+func (r *RefreshTokenRepo) SaveHash(hashedToken string, userID int, expiresAt time.Time) *shared.AppError {
 	_, err := r.db.Exec(`INSERT INTO refresh_tokens (token_hash, user_id, expires_at)
 		VALUES ($1,$2,$3)`, hashedToken, userID, expiresAt)
 	if err != nil {
@@ -22,7 +22,7 @@ func (r *RefreshTokenRepo) SaveHash(hashedToken string, userID int, expiresAt ti
 	return nil
 }
 
-func (r *RefreshTokenRepo) DeleteHashed(hashed string) error {
+func (r *RefreshTokenRepo) DeleteHashed(hashed string) *shared.AppError {
 
 	_, err := r.db.Exec(`
 		DELETE FROM refresh_tokens WHERE token_hash=$1
@@ -66,7 +66,7 @@ func (r *RefreshTokenRepo) Find(raw string) (int, time.Time, *shared.AppError) {
 	return userID, exp, nil
 }
 
-func (r *RefreshTokenRepo) FindByUserID(userID int) (string, time.Time, error) {
+func (r *RefreshTokenRepo) FindByUserID(userID int) (string, time.Time, *shared.AppError) {
 	var hash string
 	var exp time.Time
 
@@ -78,5 +78,9 @@ func (r *RefreshTokenRepo) FindByUserID(userID int) (string, time.Time, error) {
 		LIMIT 1
 	`, userID).Scan(&hash, &exp)
 
-	return hash, exp, err
+	if err != nil {
+		return "", time.Now(), shared.Internal("failed to delete refresh token", err)
+	}
+
+	return hash, exp, nil
 }

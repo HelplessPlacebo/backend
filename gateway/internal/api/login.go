@@ -29,11 +29,13 @@ func RegisterLogin(r chi.Router, p proxy.Client, v *validator.Validate, logger *
 		}
 
 		resp, err := p.ForwardJSON(context.Background(), req, endpoint, body)
+
 		if err != nil {
 			logger.Errorf("proxy error: %v", err)
 			shared.WriteJSON(w, http.StatusBadGateway, map[string]string{"error": "upstream error"})
 			return
 		}
+
 		defer resp.Body.Close()
 
 		for k, vals := range resp.Header {

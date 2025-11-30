@@ -16,6 +16,8 @@ type Config struct {
 	LoginEndpoint        string
 	RegistrationEndpoint string
 	LogoutEndpoint       string
+	RefreshEndpoint      string
+	SessionEndpoint      string
 }
 
 func Load() *Config {
@@ -35,5 +37,7 @@ func Load() *Config {
 		LoginEndpoint:        shared.String("AUTH_SERVICE_LOGIN_PATH", "/login"),
 		RegistrationEndpoint: shared.String("AUTH_SERVICE_REG_PATH", "/registration"),
 		LogoutEndpoint:       shared.String("AUTH_SERVICE_LOGOUT_PATH", "/logout"),
+		RefreshEndpoint:      shared.String("AUTH_SERVICE_REFRESH_TOKENS_PATH", "/refresh"),
+		SessionEndpoint:      shared.String("AUTH_SERVICE_SESSION_PATH", "/session"),
 	}
 }

@@ -27,6 +27,8 @@ func NewRouter(authSvc *auth.AuthService, tokensSvc *token.TokenService, cfg *co
 		api.RegisterRegistration(r, authSvc, v, logger, cfg.RegistrationEndpoint)
 		api.RegisterLogin(r, authSvc, tokensSvc, v, logger, cfg.AccessTokenTTL, cfg.RefreshTokenTTL, cfg.LoginEndpoint)
 		api.RegisterLogout(r, tokensSvc, cfg.LogoutEndpoint)
+		api.RegisterRefresh(r, tokensSvc, cfg.AccessTokenTTL, cfg.RefreshTokenTTL, cfg.RefreshEndpoint)
+		api.RegisterSession(r, tokensSvc, cfg.SessionEndpoint)
 	})
 	return r
 }
